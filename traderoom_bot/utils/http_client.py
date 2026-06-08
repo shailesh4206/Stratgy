@@ -48,30 +48,27 @@ class HttpClient:
             enable_cleanup_closed=True,
         )
 
+    async def __aenter__(self):
+        self._session = aiohttp.ClientSession(
+            timeout=self._timeout,
+            connector=self._connector,
+            headers={
+                "User-Agent": "traderoom-bot/1.0",
+                "Accept": "application/json",
+            },
+        )
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._session is not None and not self._session.closed:
+            await self._session.close()
+        self._session = None
+
     @property
     def session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            raise RuntimeError("HttpClient session not initialized")
+            raise RuntimeError("HttpClient session not initialized. Must use 'async with HttpClient()'")
         return self._session
-
-    async def ensure_session(self) -> aiohttp.ClientSession:
-        async with self._lock:
-            if self._session is None or self._session.closed:
-                self._session = aiohttp.ClientSession(
-                    timeout=self._timeout,
-                    connector=self._connector,
-                    headers={
-                        "User-Agent": "traderoom-bot/1.0",
-                        "Accept": "application/json",
-                    },
-                )
-        return self._session
-
-    async def close(self) -> None:
-        async with self._lock:
-            if self._session is not None and not self._session.closed:
-                await self._session.close()
-            self._session = None
 
     def connector_config_summary(self) -> dict[str, Any]:
         return {
@@ -94,7 +91,6 @@ class HttpClient:
     ) -> Optional[Any]:
 
         """Retries with exponential backoff for JSON endpoints."""
-        await self.ensure_session()
         timeout = timeout or self._timeout
 
         retries = self._retry_policy.total_retries
