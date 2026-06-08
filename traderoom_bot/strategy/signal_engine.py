@@ -41,16 +41,17 @@ class SignalEngine:
         reasons = []
         blocked = []   # Hard blocks — if any present, signal rejected
 
-        ms4  = analysis["smc"]["market_structure_4h"]
-        ms1  = analysis["smc"]["market_structure_1h"]
-        bos  = analysis["smc"]["bos_choch"]
-        obs  = analysis["smc"]["order_blocks"]
-        fvgs = analysis["smc"]["fvg"]
-        liq  = analysis["smc"]["liquidity"]
-        i4   = analysis["ind_4h"]
-        i1   = analysis["ind_1h"]
-        i1d  = analysis["ind_1d"]
-        px   = analysis["current_price"]
+        smc  = analysis.get("smc", {})
+        ms4  = smc.get("market_structure_4h", {})
+        ms1  = smc.get("market_structure_1h", {})
+        bos  = smc.get("bos_choch", {})
+        obs  = smc.get("order_blocks", {})
+        fvgs = smc.get("fvg", {})
+        liq  = smc.get("liquidity", {})
+        i4   = analysis.get("ind_4h", {})
+        i1   = analysis.get("ind_1h", {})
+        i1d  = analysis.get("ind_1d", {})
+        px   = analysis.get("current_price", 0)
 
         if not i4 or not i1:
             return {"score":0,"direction":"NONE","reasons":["No data"],"blocked":True}
@@ -238,10 +239,12 @@ class SignalEngine:
         return {"score":0,"direction":"NONE","reasons":reasons,"blocked":False}
 
     def _levels(self, analysis, direction):
-        px  = analysis["current_price"]
-        atr = analysis["ind_4h"].get("atr", px*0.01)
-        liq = analysis["smc"]["liquidity"]
-        obs = analysis["smc"]["order_blocks"]
+        px  = analysis.get("current_price", 0)
+        i4  = analysis.get("ind_4h", {})
+        atr = i4.get("atr", px*0.01) if isinstance(i4, dict) else px*0.01
+        smc = analysis.get("smc", {})
+        liq = smc.get("liquidity", {})
+        obs = smc.get("order_blocks", {})
         c   = self.config
 
         if direction=="LONG":

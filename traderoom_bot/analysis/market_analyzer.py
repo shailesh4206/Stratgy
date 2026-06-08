@@ -41,8 +41,8 @@ class MarketAnalyzer:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             df_1d, df_4h, df_1h, df_15m, ticker, orderbook = results
 
-            if df_1d is None or df_4h is None:
-                logger.warning(f"⚠️ Failed to fetch data for {symbol}")
+            if any(isinstance(x, Exception) or x is None for x in [df_1d, df_4h, df_1h, df_15m]):
+                logger.warning(f"⚠️ Failed to fetch complete data for {symbol}")
                 return None
 
             # ── Indicators ──────────────────────────────────────
